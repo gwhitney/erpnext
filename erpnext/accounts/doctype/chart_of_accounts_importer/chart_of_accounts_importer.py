@@ -163,7 +163,7 @@ def build_forest(data):
 	error_messages = []
 
 	for i in data:
-		account_name, dummy, account_number, is_group, account_type, root_type = i
+		account_name, dummy, account_number, is_group, account_type, root_type, descrip = i
 
 		if not account_name:
 			error_messages.append("Row {0}: Please enter Account Name".format(line_no))
@@ -173,6 +173,7 @@ def build_forest(data):
 		if account_type: charts_map[account_name]["account_type"] = account_type
 		if root_type: charts_map[account_name]["root_type"] = root_type
 		if account_number: charts_map[account_name]["account_number"] = account_number
+		if descrip: charts_map[account_name]["description"] = descrip
 		path = return_parent(data, account_name)[::-1]
 		paths.append(path) # List of path is created
 		line_no += 1
@@ -221,19 +222,19 @@ def download_template(file_type, template_type):
 
 def get_template(template_type):
 
-	fields = ["Account Name", "Parent Account", "Account Number", "Is Group", "Account Type", "Root Type"]
+	fields = ["Account Name", "Parent Account", "Account Number", "Is Group", "Account Type", "Root Type", "Description"]
 	writer = UnicodeWriter()
 	writer.writerow(fields)
 
 	if template_type == 'Blank Template':
 		for root_type in  get_root_types():
-			writer.writerow(['', '', '', 1, '', root_type])
+			writer.writerow(['', '', '', 1, '', root_type, ''])
 
 		for account in get_mandatory_group_accounts():
-			writer.writerow(['', '', '', 1, account, "Asset"])
+			writer.writerow(['', '', '', 1, account, "Asset", ''])
 
 		for account_type in get_mandatory_account_types():
-			writer.writerow(['', '', '', 0, account_type.get('account_type'), account_type.get('root_type')])
+			writer.writerow(['', '', '', 0, account_type.get('account_type'), account_type.get('root_type'), ''])
 	else:
 		writer = get_sample_template(writer)
 
@@ -241,23 +242,23 @@ def get_template(template_type):
 
 def get_sample_template(writer):
 	template = [
-		["Application Of Funds(Assets)", "", "", 1, "", "Asset"],
-		["Sources Of Funds(Liabilities)", "", "", 1, "", "Liability"],
-		["Equity", "", "", 1, "", "Equity"],
-		["Expenses", "", "", 1, "", "Expense"],
-		["Income", "", "", 1, "", "Income"],
-		["Bank Accounts", "Application Of Funds(Assets)", "", 1, "Bank", "Asset"],
-		["Cash In Hand", "Application Of Funds(Assets)", "", 1, "Cash", "Asset"],
-		["Stock Assets", "Application Of Funds(Assets)", "", 1, "Stock", "Asset"],
-		["Cost Of Goods Sold", "Expenses", "", 0, "Cost of Goods Sold", "Expense"],
-		["Asset Depreciation", "Expenses", "", 0, "Depreciation", "Expense"],
-		["Fixed Assets", "Application Of Funds(Assets)", "", 0, "Fixed Asset", "Asset"],
-		["Accounts Payable", "Sources Of Funds(Liabilities)", "", 0, "Payable", "Liability"],
-		["Accounts Receivable", "Application Of Funds(Assets)", "", 1, "Receivable", "Asset"],
-		["Stock Expenses", "Expenses", "", 0, "Stock Adjustment", "Expense"],
-		["Sample Bank", "Bank Accounts", "", 0, "Bank", "Asset"],
-		["Cash", "Cash In Hand", "", 0, "Cash", "Asset"],
-		["Stores", "Stock Assets", "", 0, "Stock", "Asset"],
+		["Application Of Funds(Assets)", "", "", 1, "", "Asset", ""],
+		["Sources Of Funds(Liabilities)", "", "", 1, "", "Liability", ""],
+		["Equity", "", "", 1, "", "Equity", "Accounts that represent owner's value or opening balances"],
+		["Expenses", "", "", 1, "", "Expense", ""],
+		["Income", "", "", 1, "", "Income", ""],
+		["Bank Accounts", "Application Of Funds(Assets)", "", 1, "Bank", "Asset", "Accounts that represent value held at financial institutions"],
+		["Cash In Hand", "Application Of Funds(Assets)", "", 1, "Cash", "Asset",""],
+		["Stock Assets", "Application Of Funds(Assets)", "", 1, "Stock", "Asset", "Accounts that represent goods in inventory"],
+		["Cost Of Goods Sold", "Expenses", "", 0, "Cost of Goods Sold", "Expense", ""],
+		["Asset Depreciation", "Expenses", "", 0, "Depreciation", "Expense", ""],
+		["Fixed Assets", "Application Of Funds(Assets)", "", 0, "Fixed Asset", "Asset", ""],
+		["Accounts Payable", "Sources Of Funds(Liabilities)", "", 0, "Payable", "Liability", ""],
+		["Accounts Receivable", "Application Of Funds(Assets)", "", 1, "Receivable", "Asset", ""],
+		["Stock Expenses", "Expenses", "", 0, "Stock Adjustment", "Expense", "Value of lost or spoiled inventory"],
+		["Sample Bank", "Bank Accounts", "", 0, "Bank", "Asset", "Rename to reflect your actual bank"],
+		["Cash", "Cash In Hand", "", 0, "Cash", "Asset", ""],
+		["Stores", "Stock Assets", "", 0, "Stock", "Asset", "Alternately named 'Inventory'"],
 	]
 
 	for row in template:

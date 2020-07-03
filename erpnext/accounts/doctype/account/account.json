@@ -28,7 +28,8 @@
   "lft",
   "rgt",
   "old_parent",
-  "include_in_gross"
+  "include_in_gross",
+  "description"
  ],
  "fields": [
   {
@@ -233,6 +234,15 @@
    "fieldname": "disabled",
    "fieldtype": "Check",
    "label": "Disable",
+   "show_days": 1,
+   "show_seconds": 1
+  },
+  {
+   "description": "Further information about this Account; for example, details about what transactions should be included or not.",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "in_list_view": 1,
    "show_days": 1,
    "show_seconds": 1
   }
