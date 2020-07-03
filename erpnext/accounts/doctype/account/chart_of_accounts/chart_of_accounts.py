@@ -9,8 +9,19 @@ from unidecode import unidecode
 from six import iteritems
 from frappe.utils.nestedset import rebuild_tree
 
+def get_account_doctype_keys():
+	account_json = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'account.json');
+	if os.path.exists(account_json):
+		with open(account_json, "r") as f:
+			return frozenset(json.loads(f.read()).get('field_order'))
+	return frozenset([
+		"name", "account_name", "parent_account", "account_type",
+		"is_group", "root_type", "tax_rate", "account_number",
+		"description"])
+
 def create_charts(company, chart_template=None, existing_company=None, custom_chart=None):
 	chart = custom_chart or get_chart(chart_template, existing_company)
+	account_doctype_keys = get_account_doctype_keys();
 	if chart:
 		accounts = []
 
@@ -19,18 +30,18 @@ def create_charts(company, chart_template=None, existing_company=None, custom_ch
 				if root_account:
 					root_type = child.get("root_type")
 
-				if account_name not in ["account_number", "account_type",
-					"root_type", "is_group", "tax_rate"]:
-
+				if account_name not in account_doctype_keys:
 					account_number = cstr(child.get("account_number")).strip()
 					account_name, account_name_in_db = add_suffix_if_duplicate(account_name,
 						account_number, accounts)
 
-					is_group = identify_is_group(child)
+					is_group = 0
+					if identify_is_group(child, account_doctype_keys): is_group = 1
+
 					report_type = "Balance Sheet" if root_type in ["Asset", "Liability", "Equity"] \
 						else "Profit and Loss"
 
-					account = frappe.get_doc({
+					account_dict = {
 						"doctype": "Account",
 						"account_name": account_name,
 						"company": company,
@@ -39,10 +50,12 @@ def create_charts(company, chart_template=None, existing_company=None, custom_ch
 						"root_type": root_type,
 						"report_type": report_type,
 						"account_number": account_number,
-						"account_type": child.get("account_type"),
-						"account_currency": child.get('account_currency') or frappe.db.get_value('Company',  company,  "default_currency"),
-						"tax_rate": child.get("tax_rate")
-					})
+						"account_currency": child.get('account_currency') or frappe.db.get_value('Company',  company,  "default_currency")
+						}
+					for field in account_doctype_keys:
+						if field not in account_dict and field in child:
+							account_dict[field] = child.get(field)
+					account = frappe.get_doc(account_dict)
 
 					if root_account or frappe.local.flags.allow_unverified_charts:
 						account.flags.ignore_mandatory = True
@@ -75,15 +88,11 @@ def add_suffix_if_duplicate(account_name, account_number, accounts):
 
 	return account_name, account_name_in_db
 
-def identify_is_group(child):
-	if child.get("is_group"):
-		is_group = child.get("is_group")
-	elif len(set(child.keys()) - set(["account_type", "root_type", "is_group", "tax_rate", "account_number"])):
-		is_group = 1
-	else:
-		is_group = 0
-
-	return is_group
+def identify_is_group(child, adk = None):
+	if adk is None: adk = get_account_doctype_keys()
+	if child.get("is_group"): return True
+	if len(set(child.keys()) - adk): return True
+	return False
 
 def get_chart(chart_template, existing_company=None):
 	chart = {}
@@ -149,8 +158,9 @@ def get_charts_for_country(country, with_standard=False):
 def get_account_tree_from_existing_company(existing_company):
 	all_accounts = frappe.get_all('Account',
 		filters={'company': existing_company},
-		fields = ["name", "account_name", "parent_account", "account_type",
-			"is_group", "root_type", "tax_rate", "account_number"],
+		fields = list(get_account_doctype_keys()
+				- set(["lft", "rgt", "properties",
+					"column_break0", "column_break1"])),
 		order_by="lft, rgt")
 
 	account_tree = {}
@@ -192,12 +202,12 @@ def build_account_tree(tree, parent, all_accounts):
 def validate_bank_account(coa, bank_account):
 	accounts = []
 	chart = get_chart(coa)
+	account_doctype_keys = get_account_doctype_keys()
 
 	if chart:
 		def _get_account_names(account_master):
 			for account_name, child in iteritems(account_master):
-				if account_name not in ["account_number", "account_type",
-					"root_type", "is_group", "tax_rate"]:
+				if account_name not in account_doctype_keys:
 					accounts.append(account_name)
 
 					_get_account_names(child)
@@ -215,16 +225,16 @@ def build_tree_from_json(chart_template, chart_data=None):
 	if not chart:
 		return
 
+	account_doctype_keys = get_account_doctype_keys()
 	accounts = []
 	def _import_accounts(children, parent):
 		''' recursively called to form a parent-child based list of dict from chart template '''
 		for account_name, child in iteritems(children):
 			account = {}
-			if account_name in ["account_number", "account_type",\
-				"root_type", "is_group", "tax_rate"]: continue
+			if account_name in account_doctype_keys: continue
 
 			account['parent_account'] = parent
-			account['expandable'] = True if identify_is_group(child) else False
+			account['expandable'] = True if identify_is_group(child, account_doctype_keys) else False
 			account['value'] = (cstr(child.get('account_number')).strip() + ' - ' + account_name) \
 				if child.get('account_number') else account_name
 			accounts.append(account)
