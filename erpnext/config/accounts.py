@@ -364,7 +364,8 @@ def get_data():
 				},
 				{
 					"type": "doctype",
-					"name": "Chart of Accounts Importer",
+					"name": "Chart Importer",
+					"description": _("Import Chart of Accounts and/or Cost Centers")
 				},
 				{
 					"type": "doctype",

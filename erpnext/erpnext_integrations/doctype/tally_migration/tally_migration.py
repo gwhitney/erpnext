@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup as bs
 import frappe
 from erpnext import encode_company_abbr
 from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import create_charts
-from erpnext.accounts.doctype.chart_of_accounts_importer.chart_of_accounts_importer import unset_existing_data
+from erpnext.accounts.doctype.chart_importer.chart_importer import unset_existing_data
 
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
@@ -290,7 +290,7 @@ class TallyMigration(Document):
 				}).insert()
 			except frappe.DuplicateEntryError:
 				company = frappe.get_doc("Company", self.erpnext_company)
-				unset_existing_data(self.erpnext_company)
+				unset_existing_data('Account', self.erpnext_company)
 
 			frappe.local.flags.ignore_chart_of_accounts = False
 			create_charts(company.name, custom_chart=json.loads(coa_file.get_content()))

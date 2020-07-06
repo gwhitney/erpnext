@@ -2,13 +2,14 @@
  "actions": [],
  "allow_copy": 1,
  "creation": "2019-02-01 12:24:34.761380",
- "description": "Import Chart of Accounts from a csv file",
+ "description": "Import Chart of Accounts or of Cost Centers from a csv file",
  "doctype": "DocType",
  "document_type": "Other",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "company",
+  "chart_type",
   "download_template",
   "import_file",
   "chart_preview",
@@ -23,10 +24,17 @@
    "options": "Company"
   },
   {
-   "depends_on": "company",
+   "fieldname": "chart_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Chart Type",
+   "options": "\nAccount\nCost Center"
+  },
+  {
+   "depends_on": "eval:(doc.company && doc.chart_type)",
    "fieldname": "import_file",
    "fieldtype": "Attach",
-   "label": "Attach custom Chart of Accounts file"
+   "label": "Attach custom Chart file"
   },
   {
    "collapsible": 1,
@@ -40,7 +48,7 @@
    "label": "Chart Tree"
   },
   {
-   "depends_on": "company",
+   "depends_on": "eval:(doc.company && doc.chart_type)",
    "fieldname": "download_template",
    "fieldtype": "Button",
    "label": "Download Template"
@@ -50,10 +58,10 @@
  "in_create": 1,
  "issingle": 1,
  "links": [],
- "modified": "2020-02-28 08:49:11.422846",
+ "modified": "2020-07-03 04:28:37.523735",
  "modified_by": "Administrator",
  "module": "Accounts",
- "name": "Chart of Accounts Importer",
+ "name": "Chart Importer",
  "owner": "Administrator",
  "permissions": [
   {
