@@ -62,9 +62,9 @@ def get_data():
 				},
 				{
 					"type": "doctype",
-					"name": "Chart of Accounts Importer",
-					"label": _("Chart of Accounts Importer"),
-					"description": _("Import Chart of Accounts from CSV / Excel files"),
+					"name": "Chart Importer",
+					"label": _("Chart Importer"),
+					"description": _("Import Chart of Accounts and/or Chart of Cost Centers from CSV / Excel files"),
 					"onboard": 1
 				},
 				{

@@ -17,6 +17,7 @@ class CostCenter(NestedSet):
 		self.name = get_autoname_with_number(self.cost_center_number, self.cost_center_name, None, self.company)
 
 	def validate(self):
+		if frappe.local.flags.ignore_validate: return
 		self.validate_mandatory()
 		self.validate_parent_cost_center()
 		self.validate_distributed_cost_center()
