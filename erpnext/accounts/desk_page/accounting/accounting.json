@@ -68,7 +68,7 @@
   {
    "hidden": 0,
    "label": "Opening and Closing",
-   "links": "[\n    {\n        \"label\": \"Opening Invoice Creation Tool\",\n        \"name\": \"Opening Invoice Creation Tool\",\n        \"type\": \"doctype\"\n    },\n    {\n        \"label\": \"Chart of Accounts Importer\",\n        \"name\": \"Chart of Accounts Importer\",\n        \"type\": \"doctype\"\n    },\n    {\n        \"description\": \"Close Balance Sheet and book Profit or Loss.\",\n        \"label\": \"Period Closing Voucher\",\n        \"name\": \"Period Closing Voucher\",\n        \"type\": \"doctype\"\n    }\n]"
+   "links": "[\n    {\n        \"label\": \"Opening Invoice Creation Tool\",\n        \"name\": \"Opening Invoice Creation Tool\",\n        \"type\": \"doctype\"\n    },\n    {\n        \"label\": \"Chart Importer (Accounts, Cost Ctrs)\",\n        \"name\": \"Chart Importer\",\n        \"type\": \"doctype\"\n    },\n    {\n        \"description\": \"Close Balance Sheet and book Profit or Loss.\",\n        \"label\": \"Period Closing Voucher\",\n        \"name\": \"Period Closing Voucher\",\n        \"type\": \"doctype\"\n    }\n]"
   },
   {
    "hidden": 0,
