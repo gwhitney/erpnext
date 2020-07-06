@@ -21,9 +21,9 @@ def get_account_doctype_keys():
 
 def create_charts(company, chart_template=None, existing_company=None, custom_chart=None):
 	chart = custom_chart or get_chart(chart_template, existing_company)
-	account_doctype_keys = get_account_doctype_keys();
 	if chart:
 		accounts = []
+		account_doctype_keys = get_account_doctype_keys()
 
 		def _import_accounts(children, parent, root_type, root_account=False):
 			for account_name, child in iteritems(children):
@@ -36,7 +36,7 @@ def create_charts(company, chart_template=None, existing_company=None, custom_ch
 						account_number, accounts)
 
 					is_group = 0
-					if identify_is_group(child, account_doctype_keys): is_group = 1
+					if identify_is_group(child): is_group = 1
 
 					report_type = "Balance Sheet" if root_type in ["Asset", "Liability", "Equity"] \
 						else "Profit and Loss"
@@ -50,7 +50,7 @@ def create_charts(company, chart_template=None, existing_company=None, custom_ch
 						"root_type": root_type,
 						"report_type": report_type,
 						"account_number": account_number,
-						"account_currency": child.get('account_currency') or frappe.db.get_value('Company',  company,  "default_currency")
+						"account_currency": child.get('account_currency') or frappe.db.get_value('Company', company, "default_currency")
 						}
 					for field in account_doctype_keys:
 						if field not in account_dict and field in child:
@@ -88,10 +88,17 @@ def add_suffix_if_duplicate(account_name, account_number, accounts):
 
 	return account_name, account_name_in_db
 
-def identify_is_group(child, adk = None):
-	if adk is None: adk = get_account_doctype_keys()
-	if child.get("is_group"): return True
-	if len(set(child.keys()) - adk): return True
+def identify_is_group(child):
+	if 'is_group' in child:
+		if child['is_group']: return True
+		return False
+	for v in child.values():
+		# if get does not throw an exception, this value is a record,
+		# so child must be a group:
+		try:
+			if v.get('dummy', True): return True
+		except:
+			continue
 	return False
 
 def get_chart(chart_template, existing_company=None):
@@ -217,7 +224,7 @@ def validate_bank_account(coa, bank_account):
 	return (bank_account in accounts)
 
 @frappe.whitelist()
-def build_tree_from_json(chart_template, chart_data=None):
+def build_tree_from_json(chart_template, chart_data=None, val_field='account_number'):
 	''' get chart template from its folder and parse the json to be rendered as tree '''
 	chart = chart_data or get_chart(chart_template)
 
@@ -225,20 +232,20 @@ def build_tree_from_json(chart_template, chart_data=None):
 	if not chart:
 		return
 
-	account_doctype_keys = get_account_doctype_keys()
-	accounts = []
-	def _import_accounts(children, parent):
+	records = []
+	def _import_records(children, parent):
 		''' recursively called to form a parent-child based list of dict from chart template '''
-		for account_name, child in iteritems(children):
-			account = {}
-			if account_name in account_doctype_keys: continue
+		for rec_name, child in iteritems(children):
+			try: val = child.get(val_field, False)
+			except: continue
 
-			account['parent_account'] = parent
-			account['expandable'] = True if identify_is_group(child, account_doctype_keys) else False
-			account['value'] = (cstr(child.get('account_number')).strip() + ' - ' + account_name) \
-				if child.get('account_number') else account_name
-			accounts.append(account)
-			_import_accounts(child, account['value'])
+			if val: rec_name = f"{val} - {rec_name}"
+			record = {'parent_name': parent,
+				'expandable': identify_is_group(child),
+				'value': rec_name
+			}
+			records.append(record)
+			_import_records(child, rec_name)
 
-	_import_accounts(chart, None)
-	return accounts
+	_import_records(chart, None)
+	return records
