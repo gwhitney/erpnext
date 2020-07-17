@@ -34,6 +34,8 @@ form_grid_templates = {
 class PurchaseInvoice(BuyingController):
 	def __init__(self, *args, **kwargs):
 		super(PurchaseInvoice, self).__init__(*args, **kwargs)
+		if not hasattr(self, 'project'):
+			self.project = None
 		self.status_updater = [{
 			'source_dt': 'Purchase Invoice Item',
 			'target_dt': 'Purchase Order Item',
