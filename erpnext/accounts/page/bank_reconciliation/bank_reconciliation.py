@@ -226,10 +226,11 @@ def check_matching_amount(bank_account, company, transaction):
 		]]
 
 	payment_entries = frappe.get_all("Payment Entry",
-		fields=["'Payment Entry' as doctype", "name", "name as display_name",
+		fields=["'Payment Entry' as doctype", "name",
 			pymt_amount_field, "payment_type", "reference_no",
-			"reference_date", "party", "party_type", "posting_date",
-			currency_field + " as currency"
+			"reference_date", "party as party2",
+			"party_name as party", "party_type", "remarks as ref2",
+			"posting_date", currency_field + " as currency"
 		], filters=currency_filter + [
 			[compare_amount, "like", "{0}%".format(amount)],
 			["docstatus", "=", "1"],
@@ -248,8 +249,15 @@ def check_matching_amount(bank_account, company, transaction):
 	# desired total.
 	journal_entry_accounts = frappe.db.sql(f"""
 		SELECT
-			'Journal Entry Account' as doctype, jea.name, je.name as display_name, je.posting_date, je.cheque_no as reference_no,
-			jea.account_currency as currency, je.pay_to_recd_from as party, je.cheque_date as reference_date,
+			'Journal Entry Account' as doctype, jea.name,
+			je.name as display_name, je.posting_date,
+			jea.account_currency as currency,
+			je.pay_to_recd_from as party, jea.party as party2,
+			jea.against_account as party3,
+			je.cheque_date as reference_date,
+			je.cheque_no as reference_no, jea.user_remark as ref2,
+			je.user_remark as ref3, je.remark as ref4,
+			jea.reference_name as ref5,
 			jea.{jea_side}_in_account_currency as pymt_amount
 		FROM
 			`tabJournal Entry Account` as jea
@@ -279,9 +287,11 @@ def check_matching_amount(bank_account, company, transaction):
 		journal_entries = frappe.db.sql("""
 			SELECT
 				"Journal Entry" as doctype, je.name,
-				je.name as display_name, je.posting_date,
+				je.posting_date,
 				je.cheque_no as reference_no,
-				je.pay_to_recd_from as party, je.cheque_date,
+				je.pay_to_recd_from as party,
+				je.cheque_date as reference_date,
+				je.user_remark as ref2, je.remark as ref3,
 				%(amount)s as pymt_amount
 			FROM
 				`tabJournal Entry Account` as jea
@@ -315,9 +325,12 @@ def check_matching_amount(bank_account, company, transaction):
 				sub.update(dict(display_name=jea.name,
 					posting_date=doc.posting_date,
 					reference_no=doc.cheque_no,
+					ref2=jea.user_remark,
+					ref3=jea.reference_name,
 					currency=company_currency,
 					reference_date=doc.cheque_date,
 					party=doc.pay_to_recd_from,
+					party2=jea.party,
 					pymt_amount=jea.debit-jea.credit
 				))
 				if transaction.debit > 0:
@@ -334,6 +347,7 @@ def check_matching_amount(bank_account, company, transaction):
 				'Sales Invoice Payment' as doctype, sip.name,
 				si.name as display_name, si.customer as party,
 				si.posting_date, sip.amount as pymt_amount,
+				si.remarks as reference_no, si.po_no as ref2,
 				si.currency
 			FROM
 				`tabSales Invoice Payment` as sip
@@ -363,8 +377,10 @@ def check_matching_amount(bank_account, company, transaction):
 
 		purchase_invoices = frappe.get_all("Purchase Invoice",
 			fields = ["'Purchase Invoice' as doctype", "name",
-				"name as display_name", "paid_amount as pymt_amount",
-				"supplier as party", "posting_date", "currency"],
+				"paid_amount as pymt_amount",
+				"supplier as party", "posting_date",
+				"currency", "remarks as ref2",
+				"bill_no as reference_no"],
 			filters=currency_condition + [
 				[compare_amount, "like", "{0}%".format(amount)],
 				["docstatus", "=", "1"],
@@ -380,8 +396,12 @@ def check_matching_amount(bank_account, company, transaction):
 				filters={"default_account": bank_account}, fields=["parent"])]
 
 			expense_claims = frappe.get_all("Expense Claim",
-				fields=["'Expense Claim' as doctype", "name", "name as display_name", "total_sanctioned_amount as pymt_amount",
-					"employee as party", "posting_date", "'{0}' as currency".format(company_currency)],
+				fields=["'Expense Claim' as doctype", "name",
+					"total_sanctioned_amount as pymt_amount",
+					"employee_name as party",
+					"employee as party2", "posting_date",
+					"remark as reference_no",
+					"'{0}' as currency".format(company_currency)],
 				filters=[
 					["total_sanctioned_amount", "like", "{0}%".format(amount)],
 					["docstatus", "=", "1"],
