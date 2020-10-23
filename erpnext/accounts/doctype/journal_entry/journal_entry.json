@@ -32,7 +32,6 @@
   "total_amount",
   "total_amount_in_words",
   "reference",
-  "clearance_date",
   "remark",
   "paid_loan",
   "inter_company_journal_entry_reference",
@@ -278,16 +277,6 @@
    "options": "fa fa-pushpin"
   },
   {
-   "fieldname": "clearance_date",
-   "fieldtype": "Date",
-   "label": "Clearance Date",
-   "no_copy": 1,
-   "oldfieldname": "clearance_date",
-   "oldfieldtype": "Date",
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
    "fieldname": "remark",
    "fieldtype": "Small Text",
    "in_global_search": 1,
@@ -503,7 +492,7 @@
  "idx": 176,
  "is_submittable": 1,
  "links": [],
- "modified": "2020-06-02 18:15:46.955697",
+ "modified": "2020-10-20 13:15:45.844586",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Journal Entry",
