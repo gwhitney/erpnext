@@ -18,7 +18,7 @@ class TestBankTransaction(unittest.TestCase):
 		add_payments()
 
 	def tearDown(self):
-		for bt in frappe.get_all("Bank Transaction"):
+		for bt in frappe.get_all("Bank Transaction", filters=[{"company": "_Test Company"}]):
 			doc = frappe.get_doc("Bank Transaction", bt.name)
 			doc.cancel()
 			doc.delete()
@@ -105,7 +105,8 @@ def create_bank_account(bank_name="Citi Bank", account_name="_Test Bank - _TC"):
 			"doctype": "Bank Account",
 			"account_name":"Checking Account",
 			"bank": bank_name,
-			"account": account_name
+			"account": account_name,
+			"company": "_Test Company"
 		}).insert()
 	except frappe.DuplicateEntryError:
 		pass
@@ -123,6 +124,7 @@ def add_transactions():
 		"date": "2018-10-23",
 		"debit": 1200,
 		"currency": "INR",
+		"company": "_Test Company",
 		"bank_account": "Checking Account - Citi Bank"
 	}).insert()
 	doc.submit()
@@ -133,6 +135,7 @@ def add_transactions():
 		"date": "2018-10-23",
 		"debit": 1700,
 		"currency": "INR",
+		"company": "_Test Company",
 		"bank_account": "Checking Account - Citi Bank"
 	}).insert()
 	doc.submit()
@@ -143,6 +146,7 @@ def add_transactions():
 		"date": "2018-10-26",
 		"debit": 690,
 		"currency": "INR",
+		"company": "_Test Company",
 		"bank_account": "Checking Account - Citi Bank"
 	}).insert()
 	doc.submit()
@@ -153,6 +157,7 @@ def add_transactions():
 		"date": "2018-10-27",
 		"debit": 3900,
 		"currency": "INR",
+		"company": "_Test Company",
 		"bank_account": "Checking Account - Citi Bank"
 	}).insert()
 	doc.submit()
@@ -163,6 +168,7 @@ def add_transactions():
 		"date": "2018-10-27",
 		"credit": 109080,
 		"currency": "INR",
+		"company": "_Test Company",
 		"bank_account": "Checking Account - Citi Bank"
 	}).insert()
 	doc.submit()
