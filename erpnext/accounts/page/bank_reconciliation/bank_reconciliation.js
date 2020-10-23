@@ -428,8 +428,27 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 	make_dialog(data) {
 		const me = this;
 		me.selected_payment = null;
-
+		let summary = me.data.date + '&nbsp;&nbsp;&nbsp;';
+		summary += me.data.debit > 0 ? 'Dr ' : 'Cr ';
+		const tot = me.data.debit+me.data.credit;
+		summary += format_currency(tot, me.data.currency);
+		if (me.data.unallocated_amount != tot) {
+			summary += ' (Unallocated: ' + format_currency(me.data.unallocated_amount, me.data.currency) + ')';
+		}
 		const fields = [
+			{
+				fieldtype: 'Section Break',
+				fieldname: 'section_break_0',
+				label: __('Currently Reconciling:'),
+				description: summary
+			},
+			{
+				fieldtype: 'Text',
+				fieldname: 'transaction_description',
+				label: __('Description'),
+				default: me.data.description,
+				read_only: 1
+			},
 			{
 				fieldtype: 'Section Break',
 				fieldname: 'section_break_1',
@@ -558,6 +577,7 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 				if (entry.posting_date && entry.posting_date > me.data.date) {
 					entry.btn_class = "btn-warning";
 				}
+				me.prepare_display_fields(entry);
 				wrap.append(frappe.render_template("linked_payment_row", entry));
 				if (!entry.subentries) {
 					return;
@@ -565,12 +585,23 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 				entry.subentries.forEach(subentry => {
 					subentry.display_name = " > " + subentry.name;
 					subentry.btn_class = "btn-info";
+					me.prepare_display_fields(subentry);
 					wrap.append(frappe.render_template("linked_payment_row", subentry));
 				});
 			});
 		} else {
 			wrap.append(`<div class="text-center"><h5 class="text-muted">${empty_message}</h5></div>`);
 		}
+	}
+
+	prepare_display_fields(payment) {
+		payment.display_name = payment.display_name || payment.name || "";
+		payment.display_date = payment.reference_date ? frappe.datetime.str_to_user(payment.reference_date) : "";
+		if (!payment.display_date) {
+			payment.display_date = payment.posting_date ? frappe.datetime.str_to_user(payment.posting_date) : "";
+		}
+		payment.display_party = payment.party || payment.party2 || payment.party3 || "";
+		payment.display_reference = payment.reference_no || payment.ref2 || payment.ref3 || payment.ref4 || payment.ref5 || "";
 	}
 
 	display_payment_details(event) {
@@ -580,7 +611,7 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 		}
 		const details_wrapper = this.dialog.fields_dict.payment_details.$wrapper;
 		details_wrapper.empty();
-		this.generate_detail_docs(event.value).then(detail_docs => {
+		me.generate_detail_docs(event.value).then(detail_docs => {
 			me.display_entries(details_wrapper, detail_docs,
 				__("No payments found associated with ") + event.value
 			);
@@ -599,8 +630,14 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 				if (payment.account === me.gl_account && !payment.clearance_date) {
 					payment.doctype = "Journal Entry Account";
 					payment.posting_date = doc.posting_date;
+					payment.party2 = payment.party;
 					payment.party = doc.pay_to_recd_from;
+					payment.party3 = payment.against_account;
 					payment.reference_no = doc.cheque_no;
+					payment.ref2 = payment.user_remark;
+					payment.ref3 = doc.user_remark;
+					payment.ref4 = doc.remark;
+					payment.ref5 = payment.reference_name;
 					payment.reference_date = doc.cheque_date;
 					payment.currency = payment.account_currency;
 					payment.pymt_amount = me.data.credit > 0 ? payment.debit-payment.credit : payment.credit-payment.debit;
@@ -631,6 +668,7 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 					payment.posting_date = doc.posting_date;
 					payment.party = doc.customer;
 					payment.reference_no = doc.remarks;
+					payment.ref2 = doc.po_no;
 					payment.currency = doc.currency;
 					payment.pymt_amount = payment.amount;
 					total_amount += payment.pymt_amount;
@@ -670,9 +708,13 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 			pay_ents = await frappe.db.get_list("Payment Entry", {
 				filters: {"reference_name": doc_name},
 				fields: [
-					"name", "payment_type", "paid_to", "paid_to_account_currency",
-					"paid_from", "paid_from_account_currency", "posting_date", "party",
-					"reference_no", "reference_date", "paid_amount", "received_amount"
+					"name", "payment_type", "paid_to",
+					"paid_to_account_currency", "paid_from",
+					"paid_from_account_currency",
+					"posting_date", "party as party2",
+					"party_name as party", "reference_no",
+					"remarks as ref2", "reference_date",
+					"paid_amount", "received_amount"
 				]
 			});
 		}
@@ -694,7 +736,6 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 				return;
 			}
 			payment.doctype = "Payment Entry";
-			payment.display_name = payment.name;
 			total_amount += payment.pymt_amount;
 			displayed_docs.push(payment);
 		});
