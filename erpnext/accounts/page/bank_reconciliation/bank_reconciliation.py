@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 import difflib
 from frappe.utils import flt
-from six import iteritems
+from six import iteritems, string_types
 from erpnext import get_company_currency
 
 # The Bank Reconciliation process has clearly gone through a series of developments over
@@ -184,8 +184,10 @@ def add_payment_to_transaction(transaction, payment_entry, gl_entry):
 	transaction.update_allocations()
 
 @frappe.whitelist()
-def get_linked_payments(bank_transaction):
+def get_linked_payments(bank_transaction, reverse_proposals=True):
 	transaction = frappe.get_doc("Bank Transaction", bank_transaction)
+	if isinstance(reverse_proposals, string_types):
+		reverse_proposals = int(reverse_proposals)
 	bank_account = frappe.db.get_values("Bank Account", transaction.bank_account, ["account", "company"], as_dict=True)
 
 	# Get all payment entries with a matching amount
@@ -195,14 +197,17 @@ def get_linked_payments(bank_transaction):
 	description_matching = get_matching_descriptions_data(bank_account[0].company, transaction)
 
 	if amount_matching:
-		return check_amount_vs_description(amount_matching, description_matching)
+		return check_amount_vs_description(amount_matching,
+			description_matching, reverse_proposals)
 
 	elif description_matching:
 		description_matching = filter(lambda x: not x.get('clearance_date'), description_matching)
 		if not description_matching:
 			return []
 
-		return sorted(list(description_matching), key = lambda x: x["posting_date"], reverse=True)
+		return sorted(list(description_matching),
+			key = lambda x: x["posting_date"],
+			reverse=reverse_proposals)
 
 	else:
 		return []
@@ -507,7 +512,7 @@ def get_matching_descriptions_data(company, transaction):
 
 	return data
 
-def check_amount_vs_description(amount_matching, description_matching):
+def check_amount_vs_description(amount_matching, description_matching, reverse_proposals):
 	result = []
 
 	if description_matching:
@@ -530,12 +535,12 @@ def check_amount_vs_description(amount_matching, description_matching):
 						if am_match not in result:
 							result.append(am_match)
 		if result:
-			return sorted(result, key = lambda x: x["posting_date"], reverse=True)
+			return sorted(result, key = lambda x: x["posting_date"], reverse=reverse_proposals)
 		else:
-			return sorted(amount_matching, key = lambda x: x["posting_date"], reverse=True)
+			return sorted(amount_matching, key = lambda x: x["posting_date"], reverse=reverse_proposals)
 
 	else:
-		return sorted(amount_matching, key = lambda x: x["posting_date"], reverse=True)
+		return sorted(amount_matching, key = lambda x: x["posting_date"], reverse=reverse_proposals)
 
 def get_matching_transactions_payments(description_matching):
 	payments = [x["payment_entry"] for x in description_matching]
