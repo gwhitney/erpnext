@@ -135,6 +135,13 @@ erpnext.accounts.bankReconciliation = class BankReconciliation {
 
 	make_reconciliation_tool() {
 		const me = this;
+		me.page.add_field({
+			fieldtype: "Check",
+			fieldname: "reverse_proposals",
+			label: __("Sort older matches last"),
+			report_hide: 1,
+			default: 1
+		})
 		frappe.model.with_doctype("Bank Transaction", () => {
 			erpnext.accounts.ReconciliationList = new erpnext.accounts.ReconciliationTool({
 				parent: me.parent,
@@ -302,11 +309,11 @@ erpnext.accounts.ReconciliationTool = class ReconciliationTool extends frappe.vi
 	get_args() {
 		const args = super.get_args();
 
-		return Object.assign({}, args, {
-			...args.filters.push(["Bank Transaction", "docstatus", "=", 1],
-				["Bank Transaction", "unallocated_amount", ">", 0])
-		});
+		let filt = args.filters.filter(f => (f[1] !== "reverse_proposals"));
+		filt.push(["Bank Transaction", "docstatus", "=", 1],
+			["Bank Transaction", "unallocated_amount", ">", 0]);
 
+		return Object.assign({}, args, {filters: filt});
 	}
 
 	update_data(r) {
@@ -326,6 +333,7 @@ erpnext.accounts.ReconciliationTool = class ReconciliationTool extends frappe.vi
 		me.data.forEach((value) => {
 			const row = $('<div class="list-row-container">').data("data", value).appendTo(me.$result).get(0);
 			value.company = me.page.fields_dict.company.value;
+			value.reverse_field = me.page.fields_dict.reverse_proposals;
 			const tot = value.credit + value.debit;
 			value.amount_described = (value.credit > 0 ? "Cr " : "Dr ") + format_currency(tot, value.currency);
 			if (tot != value.unallocated_amount) {
@@ -414,9 +422,11 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 			me.gl_account = r.account;
 		})
 
-		frappe.xcall('erpnext.accounts.page.bank_reconciliation.bank_reconciliation.get_linked_payments',
-			{ bank_transaction: data, freeze: true, freeze_message: __("Finding linked payments") }
-		).then((result) => {
+		frappe.xcall('erpnext.accounts.page.bank_reconciliation.bank_reconciliation.get_linked_payments', {
+			bank_transaction: data,
+			reverse_proposals: me.data.reverse_field.last_value,
+			freeze: true, freeze_message: __("Finding linked payments")
+		}).then((result) => {
 			me.make_dialog(result)
 		})
 	}
