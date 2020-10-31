@@ -608,6 +608,12 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 		if (!payment.display_date) {
 			payment.display_date = payment.posting_date ? frappe.datetime.str_to_user(payment.posting_date) : "";
 		}
+		payment.link_open = "";
+		payment.link_close = "";
+		if (payment.link_type) {
+			payment.link_open = `<a href="${frappe.utils.get_form_link(payment.link_type, payment.display_name)}">`;
+			payment.link_close = "</a>";
+		}
 		payment.display_party = payment.party || payment.party2 || payment.party3 || "";
 		payment.display_reference = payment.reference_no || payment.ref2 || payment.ref3 || payment.ref4 || payment.ref5 || "";
 	}
@@ -656,6 +662,7 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 			});
 			if (displayed_docs.length > 1) {
 				doc.doctype = "Journal Entry";
+				doc.link_type = "Journal Entry";
 				doc.display_name = doc.name;
 				doc.party = doc.pay_to_recd_from;
 				doc.reference_no = doc.cheque_no;
@@ -664,6 +671,9 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 				doc.pymt_amount = total_amount;
 				doc.subentries = displayed_docs;
 				return [doc];
+			}
+			if (displayed_docs.length == 1) {
+				displayed_docs[0].link_type = "Journal Entry";
 			}
 			return displayed_docs;
 		}
@@ -689,8 +699,10 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 			doc.pymt_amount = total_amount;
 			if (displayed_docs.length > 1) {
 				doc.subentries = displayed_docs;
+				doc.link_type = "Sales Invoice";
 				return [doc];
 			} else if (displayed_docs.length == 1) {
+				displayed_docs[0].link_type = "Sales Invoice";
 				return displayed_docs;
 			}
 			// else no internal Sales Invoice Payment lines. So maybe there are
@@ -703,6 +715,7 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 			doc.party = doc.supplier_name;
 			doc.reference_no = doc.bill_no;
 			doc.display_name = doc.name;
+			doc.link_type = "Purchase Invoice";
 			if (doc.cash_bank_account === me.gl_account) {
 				return [doc];
 			}
@@ -744,6 +757,7 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 				return;
 			}
 			payment.doctype = "Payment Entry";
+			payment.link_type = "Payment Entry";
 			total_amount += payment.pymt_amount;
 			displayed_docs.push(payment);
 		});
@@ -758,6 +772,7 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 			doc.display_name = name;
 		}
 		doc.pymt_amount = total_amount;
+		doc.link_type = doc.doctype;
 		doc.subentries = displayed_docs;
 		return [doc];
 	}
