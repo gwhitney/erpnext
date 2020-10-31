@@ -1,7 +1,9 @@
 <div class="list-row">
 	<div>
 		<div class="col-xs-3 col-sm-2 ellipsis">
-			{{ display_name }}
+			<span title="{{display_name}}">
+				{{link_open}}{{ display_name }}{{link_close}}
+			</span>
 		</div>
 		<div class="col-xs-3 col-sm-2 ellipsis">
 			{{ display_date }}
@@ -10,10 +12,10 @@
 			{{ format_currency(pymt_amount, currency) }}
 		</div>
 		<div class="col-sm-2 ellipsis hidden-xs">
-			{{ display_party }}
+			<span title="{{display_party}}">{{ display_party }}</span>
 		</div>
 		<div class="col-xs-3 col-sm-2 ellipsis">
-			{{ display_reference }}
+			<span title="{{display_reference}}">{{ display_reference }}</span>
 		</div>
 		<div class="col-xs-2 col-sm-2">
 			<div class="text-right margin-bottom">

@@ -232,6 +232,7 @@ def check_matching_amount(bank_account, company, transaction):
 
 	payment_entries = frappe.get_all("Payment Entry",
 		fields=["'Payment Entry' as doctype", "name",
+			"'Payment Entry' as link_type",
 			pymt_amount_field, "payment_type", "reference_no",
 			"reference_date", "party as party2",
 			"party_name as party", "party_type", "remarks as ref2",
@@ -255,8 +256,8 @@ def check_matching_amount(bank_account, company, transaction):
 	journal_entry_accounts = frappe.db.sql(f"""
 		SELECT
 			'Journal Entry Account' as doctype, jea.name,
-			je.name as display_name, je.posting_date,
-			jea.account_currency as currency,
+			je.name as display_name, 'Journal Entry' as link_type,
+			je.posting_date, jea.account_currency as currency,
 			je.pay_to_recd_from as party, jea.party as party2,
 			jea.against_account as party3,
 			je.cheque_date as reference_date,
@@ -292,7 +293,7 @@ def check_matching_amount(bank_account, company, transaction):
 		journal_entries = frappe.db.sql("""
 			SELECT
 				"Journal Entry" as doctype, je.name,
-				je.posting_date,
+				"Journal Entry" as link_type, je.posting_date,
 				je.cheque_no as reference_no,
 				je.pay_to_recd_from as party,
 				je.cheque_date as reference_date,
@@ -350,8 +351,10 @@ def check_matching_amount(bank_account, company, transaction):
 			currency_condition = 'AND si.currency = "' + transaction.currency + '"'
 		query = f"""SELECT
 				'Sales Invoice Payment' as doctype, sip.name,
-				si.name as display_name, si.customer as party,
-				si.posting_date, sip.amount as pymt_amount,
+				si.name as display_name,
+				'Sales Invoice' as link_type,
+				si.customer as party, si.posting_date,
+				sip.amount as pymt_amount,
 				si.remarks as reference_no, si.po_no as ref2,
 				si.currency
 			FROM
@@ -382,6 +385,7 @@ def check_matching_amount(bank_account, company, transaction):
 
 		purchase_invoices = frappe.get_all("Purchase Invoice",
 			fields = ["'Purchase Invoice' as doctype", "name",
+				"'Purchase Invoice' as link_type",
 				"paid_amount as pymt_amount",
 				"supplier as party", "posting_date",
 				"currency", "remarks as ref2",
@@ -402,6 +406,7 @@ def check_matching_amount(bank_account, company, transaction):
 
 			expense_claims = frappe.get_all("Expense Claim",
 				fields=["'Expense Claim' as doctype", "name",
+					"'Expense Claim' as link_type",
 					"total_sanctioned_amount as pymt_amount",
 					"employee_name as party",
 					"employee as party2", "posting_date",
