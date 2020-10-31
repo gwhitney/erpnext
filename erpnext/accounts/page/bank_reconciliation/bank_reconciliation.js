@@ -30,13 +30,14 @@ erpnext.accounts.bankReconciliation = class BankReconciliation {
 
 		me.$main_section = $(`<div class="reconciliation page-main-content"></div>`).appendTo(me.page.main);
 		me.display_empty_state();
-		me.company = null;
+		me.company = frappe.defaults.get_user_default("Company");
 
 		me.page.add_field({
 			fieldtype: 'Link',
 			label: __('Company'),
 			fieldname: 'company',
 			options: "Company",
+			default: me.company,
 			onchange: function() {
 				if (this.value != me.company) {
 					me.company = this.value || null;
