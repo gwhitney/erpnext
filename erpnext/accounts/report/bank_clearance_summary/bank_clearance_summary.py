@@ -84,7 +84,7 @@ def get_entries(filters):
 			si.docstatus = 1 and sip.account = %(account)s
 	"""
 	query += conditions
-	query += 'ORDER BY name DESC'
+	query += 'ORDER BY si.name DESC'
 
 	sip_payments = frappe.db.sql(query, filters, as_dict=1)
 
