@@ -383,6 +383,10 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 			me.new_payment();
 		})
 
+		$(me.row).on('click', '.new-bankentry', function() {
+			me.new_bank_entry();
+		})
+
 		$(me.row).on('click', '.new-invoice', function() {
 			me.bank_entry = $(this).attr("data-name");
 			me.new_invoice();
@@ -404,6 +408,38 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 		frappe.new_doc("Payment Entry", {"payment_type": payment_type,
 			amount_field: paid_amount, "party_type": party_type,
 			account_field: me.data.bank_account})
+	}
+
+	async new_bank_entry() {
+		const me = this;
+		const ba_doc = await frappe.db.get_doc("Bank Account",
+			me.data.bank_account);
+		const je_type = ba_doc.account_type === "Credit Card" ? "Credit Card Entry" : "Bank Entry";
+		frappe.new_doc("Journal Entry",
+			{
+				"company": me.data.company,
+				"voucher_type": je_type
+//				"accounts": [{
+//					"doctype": "Journal Entry Account",
+//					"account": ba_doc.account,
+//					"debit": me.data.credit, "credit": me.data.debit,
+//					"account_currency": me.data.currency,
+//				}],
+			}, doc => {
+				doc.posting_date = me.data.date;
+				doc.user_remark = me.data.description || "";
+				if (me.data.transaction_id) {
+					doc.user_remark += "Transaction ID: " + me.data.transaction_id;
+				}
+				doc.cheque_no = me.data.reference_number;
+				doc.cheque_date = me.data.date;
+				let newacc = frappe.model.add_child(doc, "accounts");
+				newacc.account = ba_doc.account;
+				newacc.account_currency = me.data.currency;
+				newacc.debit_in_account_currency = me.data.credit;
+				newacc.credit_in_account_currency = me.data.debit;
+			}
+		);
 	}
 
 	new_invoice() {
