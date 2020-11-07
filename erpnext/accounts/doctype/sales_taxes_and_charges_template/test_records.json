@@ -1,6 +1,13 @@
 [
  {
   "company": "_Test Company",
+  "doctype": "Cost Center",
+  "cost_center_name": "Main",
+  "is_group": 0,
+  "parent_cost_center": "_Test Company - _TC"
+ },
+ {
+  "company": "_Test Company",
   "doctype": "Sales Taxes and Charges Template",
   "taxes": [
    {

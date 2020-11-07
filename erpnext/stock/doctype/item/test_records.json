@@ -1,5 +1,10 @@
 [
  {
+  "doctype": "GST HSN Code",
+  "hsn_code": "999800",
+  "description": "A Test Code"
+ },
+ {
   "description": "_Test Item 1",
   "doctype": "Item",
   "has_batch_no": 0,

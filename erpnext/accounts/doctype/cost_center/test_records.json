@@ -1,6 +1,12 @@
 [
  {
   "company": "_Test Company",
+  "cost_center_name": "_Test Company",
+  "doctype": "Cost Center",
+  "is_group": 1
+ },
+ {
+  "company": "_Test Company",
   "cost_center_name": "_Test Cost Center",
   "doctype": "Cost Center",
   "is_group": 0,

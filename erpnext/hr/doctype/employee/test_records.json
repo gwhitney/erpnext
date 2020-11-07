@@ -1,5 +1,13 @@
 [
  {
+  "doctype": "Gender",
+  "gender": "Female"
+ },
+ {
+  "doctype": "Gender",
+  "gender": "Male"
+ },
+ {
   "company": "_Test Company",
   "date_of_birth": "1980-01-01",
   "date_of_joining": "2010-01-01",
