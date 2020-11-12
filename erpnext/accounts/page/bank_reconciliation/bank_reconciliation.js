@@ -566,15 +566,29 @@ erpnext.accounts.ReconciliationRow = class ReconciliationRow {
 		$(me.dialog.body).on('click', '.reconciliation-btn', (e) => {
 			const payment_entry = $(e.target).attr('data-name');
 			const payment_doctype = $(e.target).attr('data-doctype');
-			frappe.xcall('erpnext.accounts.page.bank_reconciliation.bank_reconciliation.reconcile',
-				{bank_transaction: me.bank_entry, payment_doctype: payment_doctype, payment_name: payment_entry})
-			.then((result) => {
-				setTimeout(function(){
-					erpnext.accounts.ReconciliationList.refresh();
-				}, 2000);
-				me.dialog.hide();
-			})
-		})
+			const payment_amount = flt($(e.target).attr('data-amount'));
+			let rec_wrapper = callback => { callback(); }
+			let forbid_same_side = "True";
+			if (payment_amount < 0) {
+				rec_wrapper = callback => {
+					frappe.confirm(__("Usually bank credits reconcile with ledger debits and vice versa. This entry violates that rule. Proceed?"), callback);
+				};
+				forbid_same_side = "";
+			}
+			rec_wrapper(() => {
+				frappe.xcall('erpnext.accounts.page.bank_reconciliation.bank_reconciliation.reconcile', {
+					bank_transaction: me.bank_entry,
+					payment_doctype: payment_doctype,
+					payment_name: payment_entry,
+					forbid_same_side: forbid_same_side
+				}).then((result) => {
+					setTimeout(function(){
+						erpnext.accounts.ReconciliationList.refresh();
+					}, 2000);
+					me.dialog.hide();
+				});
+			});
+		});
 
 		me.dialog.show();
 	}
