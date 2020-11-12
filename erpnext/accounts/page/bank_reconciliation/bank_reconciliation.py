@@ -70,7 +70,7 @@ from erpnext import get_company_currency
 #     documents in ERPNext of all types in both items (C) and (E) above.
 
 @frappe.whitelist()
-def reconcile(bank_transaction, payment_doctype, payment_name):
+def reconcile(bank_transaction, payment_doctype, payment_name, forbid_same_side = True):
 	transaction = frappe.get_doc("Bank Transaction", bank_transaction)
 	payment_entry = frappe.get_doc(payment_doctype, payment_name)
 	if hasattr(payment_entry, 'clearance_date') and payment_entry.clearance_date:
@@ -78,11 +78,11 @@ def reconcile(bank_transaction, payment_doctype, payment_name):
 
 	# As per the above discussion, certain doctypes are cleared directly:
 	if payment_doctype in ["Journal Entry Account", "Payment Entry", "Sales Invoice Payment"]:
-		return direct_reconcile(transaction, payment_doctype, payment_entry)
+		return direct_reconcile(transaction, payment_doctype, payment_entry, None, forbid_same_side)
 
 	account = frappe.db.get_value("Bank Account", transaction.bank_account, "account")
 	if payment_doctype == "Purchase Invoice" and payment_entry.cash_bank_account == account:
-		return direct_reconcile(transaction, "Purchase Invoice", payment_entry, account)
+		return direct_reconcile(transaction, "Purchase Invoice", payment_entry, account, forbid_same_side)
 
 	# No other doctypes are cleared directly
 	n_recd = 0
@@ -93,7 +93,7 @@ def reconcile(bank_transaction, payment_doctype, payment_name):
 			if jea.account == account and not jea.clearance_date:
 				n_tried += 1
 				if direct_reconcile(transaction,
-						"Journal Entry Account", jea, account):
+						"Journal Entry Account", jea, account, forbid_same_side):
 					n_recd += 1
 
 	elif payment_doctype == "Sales Invoice" and payment_entry.payments:
@@ -102,7 +102,7 @@ def reconcile(bank_transaction, payment_doctype, payment_name):
 				n_tried += 1
 				if direct_reconcile(transaction,
 						"Sales Invoice Payment", sip,
-						account) == 'reconciled':
+						account, forbid_same_side) == 'reconciled':
 					n_recd += 1
 
 	# Everything else is just reconciled in terms of associated Payment Entry
@@ -115,12 +115,12 @@ def reconcile(bank_transaction, payment_doctype, payment_name):
 			if not pe.clearance_date and (pe.paid_to == account or pe.paid_from == account):
 				n_tried += 1
 				if direct_reconcile(transaction, "Payment Entry",
-						pe, account) == 'reconciled':
+						pe, account, forbid_same_side) == 'reconciled':
 					n_recd += 1
 
 	return 'reconciled' if n_recd > 0 and n_recd == n_tried else 'failure'
 
-def direct_reconcile(transaction, payment_doctype, payment_entry, account = None):
+def direct_reconcile(transaction, payment_doctype, payment_entry, account = None, forbid_same_side = True):
 	if transaction.unallocated_amount == 0:
 		frappe.throw(_("This bank transaction is already fully reconciled"))
 
@@ -158,21 +158,23 @@ def direct_reconcile(transaction, payment_doctype, payment_entry, account = None
 		frappe.throw(_("There are {0} General Ledger entries associated with {1}: {2}").format(gl_count, payment_doctype, payment_entry.name))
 
 	payment_amount = gl_entry.credit_in_account_currency + gl_entry.debit_in_account_currency
-	if payment_amount > transaction.unallocated_amount:
-		frappe.throw(_("The paid amount of {0} {1} is greater than the Bank Transaction's unallocated amount").format(payment_doctype, payment_entry.name))
 
-	if transaction.credit > 0 and gl_entry.credit > 0:
-		frappe.throw(_("The selected payment entry should be linked with a debtor bank transaction"))
+	if forbid_same_side:
+		if payment_amount > transaction.unallocated_amount:
+			frappe.throw(_("The paid amount of {0} {1} is greater than the Bank Transaction's unallocated amount").format(payment_doctype, payment_entry.name))
 
-	if transaction.debit > 0 and gl_entry.debit > 0:
-		frappe.throw(_("The selected payment entry should be linked with a creditor bank transaction"))
+		if transaction.credit > 0 and gl_entry.credit > 0:
+			frappe.throw(_("The selected payment entry should be linked with a debtor bank transaction"))
+
+		if transaction.debit > 0 and gl_entry.debit > 0:
+			frappe.throw(_("The selected payment entry should be linked with a creditor bank transaction"))
 
 	add_payment_to_transaction(transaction, payment_entry, gl_entry)
 
 	return 'reconciled'
 
 def add_payment_to_transaction(transaction, payment_entry, gl_entry):
-	gl_amount, transaction_amount = (gl_entry.credit, transaction.debit) if gl_entry.credit > 0 else (gl_entry.debit, transaction.credit)
+	gl_amount, transaction_amount = (gl_entry.credit-gl_entry.debit, transaction.debit) if transaction.debit > 0 else (gl_entry.debit-gl_entry.credit, transaction.credit)
 	allocated_amount = gl_amount if gl_amount <= transaction_amount else transaction_amount
 	transaction.append("payment_entries", {
 		"payment_document": payment_entry.doctype,
