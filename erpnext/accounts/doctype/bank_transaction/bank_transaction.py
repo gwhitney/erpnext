@@ -49,8 +49,8 @@ class BankTransaction(StatusUpdater):
 				payment_entry.payment_entry, self.currency)
 
 			if paid_amount and allocated_amount:
-				if  flt(allocated_amount[0]["allocated_amount"]) > flt(paid_amount):
-					frappe.throw(_("The total allocated amount ({0}) is greater than the paid amount ({1}).").format(flt(allocated_amount[0]["allocated_amount"]), flt(paid_amount)))
+				if  abs(allocated_amount) > flt(paid_amount):
+					frappe.throw(_("The total allocated amount ({0}) is greater than the paid amount ({1}).").format(allocated_amount, flt(paid_amount)))
 				else:
 					# LEGACY: it is still possible that there are
 					# Bank Transaction records out there in old
@@ -156,7 +156,7 @@ class BankTransaction(StatusUpdater):
 
 
 def get_total_allocated_amount(payment_entry):
-	return frappe.db.sql("""
+	result = frappe.db.sql("""
 		SELECT
 			SUM(btp.allocated_amount) as allocated_amount,
 			bt.name
@@ -170,6 +170,7 @@ def get_total_allocated_amount(payment_entry):
 			btp.payment_entry = %s
 		AND
 			bt.docstatus = 1""", (payment_entry.payment_document, payment_entry.payment_entry), as_dict=True)
+	return flt(result[0]["allocated_amount"]) if result else 0
 
 @frappe.whitelist()
 def unclear_reference_payment(doctype, docname):
