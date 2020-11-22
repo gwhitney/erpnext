@@ -896,7 +896,7 @@ def get_coa(doctype, parent, is_root, chart=None):
 	accounts = build_tree_from_json(chart) # returns alist of dict in a tree render-able form
 
 	# filter out to show data for the selected node only
-	accounts = [d for d in accounts if d['parent_account']==parent]
+	accounts = [d for d in accounts if d['parent_name']==parent]
 
 	return accounts
 

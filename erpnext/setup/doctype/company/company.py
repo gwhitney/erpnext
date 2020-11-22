@@ -374,7 +374,7 @@ class Company(NestedSet):
 
 		# reset default company
 		frappe.db.sql("""update `tabSingles` set value=""
-			where doctype='Chart of Accounts Importer' and field='company'
+			where doctype='Chart Importer' and field='company'
 			and value=%s""", self.name)
 
 		# delete BOMs
