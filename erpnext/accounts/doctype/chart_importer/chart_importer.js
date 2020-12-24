@@ -1,15 +1,17 @@
-frappe.ui.form.on('Chart of Accounts Importer', {
+frappe.ui.form.on('Chart Importer', {
 	onload: function (frm) {
 		frm.set_value("company", "");
+		frm.set_value("chart_type", "");
 		frm.set_value("import_file", "");
 	},
 	refresh: function (frm) {
 		// disable default save
 		frm.disable_save();
 
-		// make company mandatory
+		// make company and chart type mandatory
 		frm.set_df_property('company', 'reqd', frm.doc.company ? 0 : 1);
-		frm.set_df_property('import_file_section', 'hidden', frm.doc.company ? 0 : 1);
+		frm.set_df_property('chart_type', 'reqd', frm.doc.chart_type ? 0 : 1);
+		frm.set_df_property('import_file_section', 'hidden', (frm.doc.company && frm.doc.chart_type) ? 0 : 1);
 		frm.set_df_property('chart_preview', 'hidden',
 			$(frm.fields_dict['chart_tree'].wrapper).html()!="" ? 0 : 1);
 
@@ -41,12 +43,13 @@ frappe.ui.form.on('Chart of Accounts Importer', {
 
 						if (template_type === "Sample Template") {
 							d.set_df_property('template_type', 'description',
-								`The Sample Template contains all the required accounts pre filled in the  template.
-								You can add more accounts or change existing accounts in the template as per your choice.`);
+								`The Sample Template contains several example records, including placeholders
+								for any records that are required for a valid chart.
+								You can add more records or change existing records in the template as per your choice.`);
 						} else {
 							d.set_df_property('template_type', 'description',
-								`The Blank Template contains just the account type and root type required to build the Chart
-								of Accounts. Please enter the account names and add more rows as per your requirement.`);
+								`The Blank Template contains just the headers and minimal records required to
+								build the Chart. Please enter the record names and add more rows as needed.`);
 						}
 					}
 				}
@@ -59,10 +62,11 @@ frappe.ui.form.on('Chart of Accounts Importer', {
 				}
 
 				open_url_post(
-					'/api/method/erpnext.accounts.doctype.chart_of_accounts_importer.chart_of_accounts_importer.download_template',
+					'/api/method/erpnext.accounts.doctype.chart_importer.chart_importer.download_template',
 					{
 						file_type: data.file_type,
-						template_type: data.template_type
+						template_type: data.template_type,
+						chart_type: frm.doc.chart_type
 					}
 				);
 
@@ -87,14 +91,15 @@ frappe.ui.form.on('Chart of Accounts Importer', {
 		if (frm.doc.company) {
 			// validate that no Gl Entry record for the company exists.
 			frappe.call({
-				method: "erpnext.accounts.doctype.chart_of_accounts_importer.chart_of_accounts_importer.validate_company",
+				method: "erpnext.accounts.doctype.chart_importer.chart_importer.validate_company",
 				args: {
 					company: frm.doc.company
 				},
 				callback: function(r) {
 					if(r.message===false) {
 						frm.set_value("company", "");
-						frappe.throw(__("Transactions against the Company already exist! Chart of Accounts can only be imported for a Company with no transactions."));
+						frappe.throw(__(`Transactions against the Company already exist!
+							The Chart Importer only works for a Company with no transactions`));
 					} else {
 						frm.trigger("refresh");
 					}
@@ -106,8 +111,10 @@ frappe.ui.form.on('Chart of Accounts Importer', {
 
 var validate_csv_data = function(frm) {
 	frappe.call({
-		method: "erpnext.accounts.doctype.chart_of_accounts_importer.chart_of_accounts_importer.validate_accounts",
-		args: {file_name: frm.doc.import_file},
+		method: "erpnext.accounts.doctype.chart_importer.chart_importer.validate_accounts",
+		args: {file_name: frm.doc.import_file,
+			chart_type: frm.doc.chart_type
+		},
 		callback: function(r) {
 			if(r.message && r.message[0]===true) {
 				frm.page["show_import_button"] = true;
@@ -124,9 +131,10 @@ var validate_csv_data = function(frm) {
 var create_import_button = function(frm) {
 	frm.page.set_primary_action(__("Import"), function () {
 		frappe.call({
-			method: "erpnext.accounts.doctype.chart_of_accounts_importer.chart_of_accounts_importer.import_coa",
+			method: "erpnext.accounts.doctype.chart_importer.chart_importer.import_chart",
 			args: {
 				file_name: frm.doc.import_file,
+				chart_type: frm.doc.chart_type,
 				company: frm.doc.company
 			},
 			freeze: true,
@@ -151,7 +159,7 @@ var create_reset_button = function(frm) {
 };
 
 var generate_tree_preview = function(frm) {
-	let parent = __('All Accounts');
+	let parent = (frm.doc.chart_type == 'Account' ? __('All Accounts') : __('All Cost Centers'));
 	$(frm.fields_dict['chart_tree'].wrapper).empty(); // empty wrapper to load new data
 
 	// generate tree structure based on the csv data
@@ -159,11 +167,12 @@ var generate_tree_preview = function(frm) {
 		parent: $(frm.fields_dict['chart_tree'].wrapper),
 		label: parent,
 		expandable: true,
-		method: 'erpnext.accounts.doctype.chart_of_accounts_importer.chart_of_accounts_importer.get_coa',
+		method: 'erpnext.accounts.doctype.chart_importer.chart_importer.get_chart',
 		args: {
 			file_name: frm.doc.import_file,
 			parent: parent,
-			doctype: 'Chart of Accounts Importer',
+			doctype: 'Chart Importer',
+			chart_type: frm.doc.chart_type,
 			file_type: frm.doc.file_type
 		},
 		onclick: function(node) {
