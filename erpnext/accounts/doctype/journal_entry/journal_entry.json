@@ -106,6 +106,7 @@
    "width": "50%"
   },
   {
+   "bold": 1,
    "fieldname": "posting_date",
    "fieldtype": "Date",
    "label": "Posting Date",
